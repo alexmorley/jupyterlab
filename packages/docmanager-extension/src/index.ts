@@ -1,4 +1,5 @@
 // Copyright (c) Jupyter Development Team.
+
 // Distributed under the terms of the Modified BSD License.
 
 import { toArray, iter } from '@phosphor/algorithm';
@@ -60,9 +61,13 @@ namespace CommandIDs {
 
   export const open = 'docmanager:open';
 
+  export const copy = 'docmanager:copy';
+
   export const openBrowserTab = 'docmanager:open-browser-tab';
 
   export const openDirect = 'docmanager:open-direct';
+
+  export const copyDirect = 'docmanager:copy-direct';
 
   export const reload = 'docmanager:reload';
 
@@ -395,6 +400,61 @@ function addCommands(
     label: () => 'Open in New Browser Tab'
   });
 
+  commands.addCommand(CommandIDs.copy, {
+    caption: 'Copy from path',
+    isEnabled: () => true,
+    execute: args => {
+      const path =
+        typeof args['path'] === 'undefined' ? '' : (args['path'] as string);
+      const toDir =
+        typeof args['toDir'] === 'undefined' ? '' : (args['toDir'] as string);
+
+      return docManager.services.contents.get(path, { content: false }).then(
+        args => {
+          // exists
+          return docManager.copy(path, toDir);
+        },
+        () => {
+          // does not exist
+          return showDialog({
+            title: 'Cannot open',
+            body: 'File not found',
+            buttons: [Dialog.okButton()]
+          });
+        }
+      );
+    }
+  });
+
+  commands.addCommand(CommandIDs.copyDirect, {
+    caption: 'Copy from path',
+    isEnabled: () => true,
+    execute: args => {
+      return getOpenPath(docManager.services.contents).then(path => {
+        if (!path) {
+          return;
+        }
+        const toDir =
+          typeof args['toDir'] === 'undefined' ? '' : (args['toDir'] as string);
+
+        return docManager.services.contents.get(path, { content: false }).then(
+          args => {
+            // exists
+            return docManager.copy(path, toDir);
+          },
+          () => {
+            // does not exist
+            return showDialog({
+              title: 'Cannot open',
+              body: 'File not found',
+              buttons: [Dialog.okButton()]
+            });
+          }
+        );
+      });
+    }
+  });
+
   commands.addCommand(CommandIDs.openDirect, {
     label: () => 'Open From Path...',
     caption: 'Open from path',
@@ -593,6 +653,7 @@ function addCommands(
     [
       CommandIDs.close,
       CommandIDs.openDirect,
+      CommandIDs.copyDirect,
       CommandIDs.reload,
       CommandIDs.restoreCheckpoint,
       CommandIDs.save,

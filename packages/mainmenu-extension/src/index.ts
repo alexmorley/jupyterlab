@@ -415,6 +415,7 @@ export function createFileMenu(
   // Add the new group
   const newGroup = [
     { type: 'submenu' as Menu.ItemType, submenu: menu.newMenu.menu },
+    { type: 'submenu' as Menu.ItemType, submenu: menu.fromTemplateMenu.menu },
     { command: 'filebrowser:create-main-launcher' }
   ];
 

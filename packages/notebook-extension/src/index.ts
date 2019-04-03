@@ -81,6 +81,11 @@ import { Panel, Menu } from '@phosphor/widgets';
 namespace CommandIDs {
   export const createNew = 'notebook:create-new';
 
+  export const createNewFromTemplate = 'notebook:create-new-from-template';
+
+  export const createNewFromTemplateDirect =
+    'notebook:create-new-from-template-direct';
+
   export const interrupt = 'notebook:interrupt-kernel';
 
   export const restart = 'notebook:restart-kernel';
@@ -637,6 +642,36 @@ function activateNotebookHandler(
     populateMenus(app, mainMenu, tracker, services, palette);
   }
 
+  // Utility functions to create a new notebook from a template.
+  const createNewFromTemplate = (
+    path: string,
+    cwd: string,
+    kernelName?: string
+  ) => {
+    return commands
+      .execute('docmanager:copy', { path: path, toDir: cwd })
+      .then(model => {
+        return commands.execute('docmanager:open', {
+          path: model.path,
+          factory: FACTORY,
+          kernel: { name: kernelName }
+        });
+      });
+  };
+
+  // Utility function to create a new notebook from a template.
+  const createNewFromTemplateDirect = (cwd: string, kernelName?: string) => {
+    return commands
+      .execute('docmanager:copy-direct', { toDir: cwd })
+      .then(model => {
+        return commands.execute('docmanager:open', {
+          path: model.path,
+          factory: FACTORY,
+          kernel: { name: kernelName }
+        });
+      });
+  };
+
   // Utility function to create a new notebook.
   const createNew = (cwd: string, kernelName?: string) => {
     return commands
@@ -672,6 +707,60 @@ function activateNotebookHandler(
       return createNew(cwd, kernelName);
     }
   });
+
+  // Add a command for creating a new notebook.
+  commands.addCommand(CommandIDs.createNewFromTemplateDirect, {
+    label: args => {
+      const kernelName = (args['kernelName'] as string) || '';
+      if (args['isLauncher'] && args['kernelName']) {
+        return services.specs.kernelspecs[kernelName].display_name;
+      }
+      if (args['isPalette']) {
+        return 'Notebook (custom template)';
+      }
+      return 'Notebook (custom template)';
+    },
+    caption: 'Create a new notebook from a template',
+    iconClass: args => (args['isPalette'] ? '' : 'jp-NotebookIcon'),
+    execute: args => {
+      const cwd =
+        (args['cwd'] as string) ||
+        (browserFactory ? browserFactory.defaultBrowser.model.path : '');
+      const kernelName = (args['kernelName'] as string) || '';
+      return createNewFromTemplateDirect(cwd, kernelName);
+    }
+  });
+
+  for (let template of [
+    { name: 'Data Science', path: 'templates/data-science.ipynb' },
+    { name: 'Tutorial', path: 'templates/tutorial.ipynb' }
+  ]) {
+    commands.addCommand(template.name, {
+      label: args => {
+        const kernelName = (args['kernelName'] as string) || '';
+        if (args['isLauncher'] && args['kernelName']) {
+          return services.specs.kernelspecs[kernelName].display_name;
+        }
+        if (args['isPalette']) {
+          return 'New ' + template.name + ' Notebook';
+        }
+        return 'New ' + template.name + ' Notebook';
+      },
+      caption: 'Create a new notebook from the' + template.name + ' template',
+      iconClass: args => (args['isPalette'] ? '' : 'jp-NotebookIcon'),
+      execute: args => {
+        const cwd =
+          (args['cwd'] as string) ||
+          (browserFactory ? browserFactory.defaultBrowser.model.path : '');
+        const kernelName = (args['kernelName'] as string) || '';
+        return createNewFromTemplate(template.path, cwd, kernelName);
+      }
+    });
+    mainMenu.fileMenu.fromTemplateMenu.addGroup(
+      [{ command: template.name }],
+      10
+    );
+  }
 
   // Add a launcher item if the launcher is available.
   if (launcher) {
@@ -1812,6 +1901,11 @@ function populatePalette(
     args: { isPalette: true }
   });
 
+  palette.addItem({
+    command: CommandIDs.createNewFromTemplate,
+    category,
+    args: { isPalette: true }
+  });
   category = 'Notebook Cell Operations';
   [
     CommandIDs.run,
@@ -1899,6 +1993,10 @@ function populateMenus(
 
   // Add new notebook creation to the file menu.
   mainMenu.fileMenu.newMenu.addGroup([{ command: CommandIDs.createNew }], 10);
+  mainMenu.fileMenu.fromTemplateMenu.addGroup(
+    [{ command: CommandIDs.createNewFromTemplateDirect }],
+    10
+  );
 
   // Add a close and shutdown command to the file menu.
   mainMenu.fileMenu.closeAndCleaners.add({

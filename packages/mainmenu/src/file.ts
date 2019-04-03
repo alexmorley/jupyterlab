@@ -19,6 +19,8 @@ export interface IFileMenu extends IJupyterLabMenu {
    */
   readonly newMenu: IJupyterLabMenu;
 
+  readonly fromTemplateMenu: IJupyterLabMenu;
+
   /**
    * The close and cleanup extension point.
    */
@@ -52,6 +54,10 @@ export class FileMenu extends JupyterLabMenu implements IFileMenu {
     this.closeAndCleaners = new Set<IFileMenu.ICloseAndCleaner<Widget>>();
     this.persistAndSavers = new Set<IFileMenu.IPersistAndSave<Widget>>();
     this.consoleCreators = new Set<IFileMenu.IConsoleCreator<Widget>>();
+
+    // Create the "New" submenu.
+    this.fromTemplateMenu = new JupyterLabMenu(options, false);
+    this.fromTemplateMenu.menu.title.label = 'From Template';
   }
 
   /**
@@ -59,6 +65,10 @@ export class FileMenu extends JupyterLabMenu implements IFileMenu {
    */
   readonly newMenu: JupyterLabMenu;
 
+  /**
+   * The From Template submenu.
+   */
+  readonly fromTemplateMenu: JupyterLabMenu;
   /**
    * The close and cleanup extension point.
    */
@@ -79,6 +89,7 @@ export class FileMenu extends JupyterLabMenu implements IFileMenu {
    */
   dispose(): void {
     this.newMenu.dispose();
+    this.fromTemplateMenu.dispose();
     this.consoleCreators.clear();
     super.dispose();
   }
